@@ -1,51 +1,9 @@
 #!/usr/bin/python3
 
 # telegram-irc-bridge v0.0.4-beta
-# by DJ_Arghlex (@dj_arghlex)
+# by DJ_Arghlex - report issues on github.com/DJArghlex/telegram-irc-bridge/issues
 # simulates a simple IRC server for connecting an IRC bot to a telegram bot account, and joining that bot to a telegram chat group.
 
-'''
-DEPENDENCIES
-	- python-telegram-bot ( https://github.com/python-telegram-bot/python-telegram-bot )
-	- up-to-date python 3.7 install
-	- knowledge of how telegram groups work
-	- an IRC bot, or client, ready and waiting to connect and function.
-
-SETUP
-	- talk to the @BotFather on telegram ( https://telegram.me/botfather )
-	  - add a bot user for your account
-	  - allow it to be joined to groups, and to receive *all* messages from your group
-	    (if you so choose. Keep in mind that not enabling this means your bot will have to parse all commands as though they have a / preceding them rather than anything else.)
-	- install dependencies and get your IRC bot up and running
-	  - direct it to connect via plaintext to localhost:6667, but don't start it yet.
-	  - the character encoding NEEDS to be UTF-8. Most, if not all, modern IRC clients/bots use this by default, except ... mIRC.
-	- configure this script with your group ID, user ID, and your bot's telegram access token.
-	- start the script. when the script says it's awaiting connection, start and connect your bot to it.
-	- if all goes well, your bot should react to you talking to it via telegram.
-	
-NOTES & CAVEATS
-	- /me (yes, an actual command) is parsed by the bridge and sent as a CTCP ACTION when going to IRC
-	- conversely, ACTIONs by the bot are converted and encapsulated with asterisks
-	- all formatting between the two sides of the bridge is removed (TG->IRC) or just broken (IRC->TG)
-	- users that talk the first time (as determined by the bridge's persistence) will
-	    seem (to the bot) to join, then talk immediately with their line. after this,
-	    the user will appear as normal. some advanced bots (eggdrop) may see this as
-	    a flood attack. adjust your chansets accordingly
-	- due to the nature of IRC being that of impermanence, the telegram relay will NOT
-	    automatically push any cached messages from telegram that were accrued while the bridge was offline.
-	    this is INTENTIONAL. you can disable it in the code if you REALLY want but it will make your bot FREAK.
-	- flooding from the bot to telegram will absolutely get your API calls blocked and your token locked down. 
-	    at time of writing, the limit as noted in telegram's API documents is more than 20 messages in a minute 
-	    will result in throttling. further offences in this period will result in likely some form of blockade.
-	- the CAPAB (004 & 005 numerics) messages sent by the bridge to the client are not indicative of the bridge's abilities. These merely
-	    were copied from a real, complete server to get bots to see it as a valid connection. These may be pared down to match
-	    the actual capabilities of the bridge in the future.
-	- no banlists/invitelists/exceptionlists
-	- (currently) no +o/+h/+v or +m mode support
-	- it's literally the galaxy's crudest single-connection single-thread IRC server stapled on to an asynchronous
-	    telegram API. there's gonna be some wack-ass shit and some even wackier janky shit going on.
-
-'''
 
 # CONFIGURATION
 telegramToken = "replace" # your bot's telegram presence's token. get from the @BotFather on telegram.
