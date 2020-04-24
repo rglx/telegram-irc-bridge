@@ -3,7 +3,7 @@ simulates an irc server to facilitate a single IRC user on telegram. good for ol
 
 ## dependencies
 - python-telegram-bot ( https://github.com/python-telegram-bot/python-telegram-bot )
-- up-to-date python 3.7 install
+- up-to-date python 3 install
 - knowledge of how telegram groups work  
 - an IRC bot, or client, ready and waiting to connect and function.
   
