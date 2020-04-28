@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # telegram-irc-bridge
-bridgeVersion = "0.1.0" # don't comment this out
+bridgeVersion = "0.1.1" # don't comment this out
 # by DJ_Arghlex (@dj_arghlex)
 # simulates a simple IRC server for connecting an IRC bot to a telegram bot account, with some limited functionality and controls therein.
 
@@ -31,7 +31,7 @@ def bridge_alltext(update, context):
 	sourceChatId = str(update.effective_chat.id)
 	adminsList = None
 
-	if sourceUserName == None: # ignore messages from @-less usernames
+	if sourceUserName == "None" or sourceUserName == None: # ignore messages from @-less usernames
 		printLog("Compat", "Ignoring a message from an @-less user")
 		return None
 
@@ -55,7 +55,7 @@ def bridge_alltext(update, context):
 		del temporary
 
 	# parse and IRC-ify /me as CTCP ACTIONs
-	ctcpChar = '\x01'
+	ctcpChar = str('\x01')
 	if toIrcText.startswith("/me "):
 		actionText = toIrcText.split(" ")[1:]
 		if actionText == None:
@@ -148,7 +148,7 @@ def saveUserToCache(userId, storedName, groupId = None, adminOnSpecificGroup = N
 		# we don't need to check if this is a new user in the channel or mark it as such because that's done below.
 
 	# stored name doesn't match what we already have.
-	if storedName != telegramCache["users"][userId][0]:
+	if storedName != telegramCache["users"][userId][0] and storedName != "None":
 		printLog("Cache","updated username user entry for "+userId)
 		telegramCache["users"][userId][0] = storedName
 		cacheChanged = True
@@ -183,8 +183,8 @@ def saveUserToCache(userId, storedName, groupId = None, adminOnSpecificGroup = N
 				printLog("Cache","adminstate changed to " + str(adminOnSpecificGroup) + " on " + userId + " in "+groupId)
 				adminStatusChanged = adminOnSpecificGroup
 				cacheChanged = True
-	else:
-		printLog("Cache","skipping group cache actions as function was not called with groupId")
+	#else:
+		#printLog("Cache","skipping group cache actions as function was not called with groupId")
 
 	# only write the cache if it's actually been changed. otherwise we're doing excessive disk writes for no reason
 	if cacheChanged == True:
@@ -210,6 +210,7 @@ def sendToTelegramChat(destination, text, useMarkdown = False):
 					word = "@" + word
 					printLog("Compat","Forcibly converted a username to a mention")
 		text = " ".join(temporary)
+	text.encode("utf-8")
 	if text == None:
 		return False
 	try:
@@ -218,7 +219,11 @@ def sendToTelegramChat(destination, text, useMarkdown = False):
 		else:
 			telegramBotInterface.send_message( chat_id=int(destination), text=str(text) )
 	except Unauthorized:
-		printLog("TelegramLib WARNING", "Bridge cannot DM a user who has not enabled that function.")
+		printLog("TelegramLib WARNING", "Bridge attempted to send a message to a group it's not part of or a user who has not enabled DMs with the bot.")
+		if int(destination) > 0:
+			# destination was a user. disable PMs to them
+			saveUserToCache(str(destination), None, None, None, False)
+			printLog("TelegramLib WARNING","Disabled PMs for TUser "+ str(destination))
 	except:
 		printLog("TelegramLib ERROR", "An error occured when attempting to send a message to Telegram. Ignoring! [fix this, arghlex]")
 
@@ -327,7 +332,7 @@ def loadOrCreateSecretConfig(file = "configuration_secrets.ini"):
 
 def shutdownBridge (irc_socket = None, messageCategory = "FATAL ERROR", message = "Exiting!", exitcode = 1):
 	printLog(messageCategory,message)
-	if irc_socket is not None:
+	if irc_socket != None:
 		irc_socket.close()
 	#updater.stop()
 	#sys.exit(exitcode)
@@ -379,8 +384,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 			socketBound=True
 			printLog("IRC","Socket bound and listening.")
 		except:
-			printLog("IRC","Failed to bind socket... retrying!")
-			sleep(0.5)
+			printLog("IRC","Failed to bind socket... retrying in 2 seconds!")
+			sleep(2)
 			pass
 	ircuser = {
 		"user": None,
@@ -405,8 +410,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 			# now we parse our received data. Hopefully.
 			data=data.split(b'\r\n') # because some clients don't follow RFC, and send USER and NICK on the same line that's done to avoid the NICK/USER connection initialization deadlocking that does happen on big IRCds
 			for rawline in data:
-			
-				# for each line we've recieved we need to preparse it.
+				#print(str(rawline))
 				try:
 					line=rawline.decode("utf-8") # decode
 				except UnicodeDecodeError:
@@ -415,6 +419,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 				if line == "" or line == None: # make sure it's not just garbage data
 					continue # empty line. skip.
 				#line = line.strip('\x01','\x03','\x02','\x1D','\x1F','\x1E','\x0F','\x16','\x04')
+				#line = line.strip("\xc2")
+				#line = line.replace("\xc3","\xf0")
 				line = line.split(" ") # ok NOW split it
 				
 				if line[0] == "PING": # ping responses, the bread and butter of any ircd
@@ -495,7 +501,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 
 						# there. just like home.
 						#updater.start_polling(poll_interval=0.2, clean=True)
-						updater.start_polling(poll_interval=0.2, clean=False)
+						updater.start_polling(poll_interval=0.2, clean=True)
 						printLog("Telegram","Telegram interface polling in separate thread. Link established!")
 
 				elif line[0] == "NICK":  # nickname being changed
@@ -581,6 +587,29 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 						sendToTelegramChat( destinationChatId, newtext )
 						printLog("IRC Msg " + str(destinationChatId), " <" + ircuser["nick"] + "> " + newtext )
 
+				elif line[0] =="NOTICE": # client noticing something
+					destinationChatId = None
+					if line[1].startswith("#"): # this is a channel/group/thing
+						destinationChatId = str(line[1].lstrip("#"))
+						if int(destinationChatId) > 0: # something odd happened and the client's trying to DM a user via a pseudochannel????
+							continue
+					else: # okay, so it's not a channel. it's a direct message to another user.
+						for cachedUserId,cachedUserInfo in telegramCache["users"].items():
+							if cachedUserInfo[0] == str(line[1]): # found it. this is where it goes.
+								destinationChatId = cachedUserId
+								if cachedUserInfo[1] == False or cachedUserInfo[1] == None:
+									printLog("Compat","Client attempted to notice-DM a user who has not accepted DMs from the bot.")
+									continue
+
+					if destinationChatId == None:
+						continue
+						# just ignore it.
+
+					else:
+						newtext = " ".join(line[2:])[1:] # remove leading colon
+						sendToTelegramChat( destinationChatId, "`[Notice] " + newtext + "`", True )
+						printLog("IRC Ntc " + str(destinationChatId), " <" + ircuser["nick"] + "> " + newtext )
+
 				elif line[0] == "PART": # client leaving a channel
 					ircuser["channels"] = list(filter((line[1]).__ne__, ircuser["channels"])) # taken from stackoverflow, it's arcane
 					sendToIrc(":" + ircuser["nick"]+"!"+ircuser["user"]+"@telegram.irc.bridge PART :"+ " ".join(line[2:]) )
@@ -618,10 +647,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 					else:
 						printLog("IRC","Client tried to set modes on another user. Ignoring. ("+ " ".join(line) +")")
 
-				#elif line[0] == "NOTICE":  # redirect ALL outgoing NOTICEs to the telegram chat, but make it fixed-width
-				#	newtext = " ".join(line[2:]).lstrip(":") #.encode('utf-8')
-				#	sendToTelegramChat( chat_id=int(line[1].lstrip("#")), text="NOTICE: `" + newtext + "`", parse_mode=ParseMode.MARKDOWN_V2)
-
 				elif line[0] == "KICK":  # KICKs from client. Ignore them.
 					printLog("IRC","Client tried to kick " + line[2] + " from " + line[1])
 					sendToIrc(":telegram.irc.bridge 482 "+ircuser["nick"]+" "+line[1]+" :You must be a channel half-operator to kick users.")
@@ -631,7 +656,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as irc_socket:
 					sendToIrc(":telegram.irc.bridge 482 "+ircuser["nick"]+" "+line[1]+" :You must be a channel half-operator to kick users.")
 
 				elif line[0] == "QUIT":
-					shutdownBridge(irc_socket,"IRC","Client disconnecting.",0)
+					#shutdownBridge(irc_socket,"IRC","Client disconnecting.",0)
+					printLog("IRC","Client disconnected.")
 
 
 				else: # other garbage info coming in. print here.
