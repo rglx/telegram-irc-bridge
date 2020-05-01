@@ -12,7 +12,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import Bot, ParseMode
 
 # telegram-irc-bridge
-bridgeVersion = "0.1.3.1"  # don't comment this out
+bridgeVersion = "0.1.3.2"  # don't comment this out
 # by DJ_Arghlex (@dj_arghlex)
 # simulates a simple IRC server for connecting an IRC bot to a telegram bot account, with some limited functionality and controls therein.
 
@@ -132,16 +132,16 @@ def bridge_controlcommand(update, context):
 		printLog("Control", "User attempted to control the bridge outside a DM. Ignoring.")
 		return None
 
-	if sourceText.startswith("/start "):
+	if sourceText.startswith("/start"):
 		# /start command issued, allowing the bridge to convey DMs between bot and user
 		printLog("Control", sourceUserName + " enabled DMs with bridge client.")
 		saveUserToCache(sourceUserId, sourceUserName, None, None, True)
 		sendToTelegramChat(sourceChatId, "`[Bridge Notice]` PMs will now be conducted between you and the bot\n Use /stop, or block the bot to disable this", True)
-	if sourceText.startswith("/stop "):
+	if sourceText.startswith("/stop"):
 		# /start command issued, allowing the bridge to convey DMs between bot and user
 		saveUserToCache(sourceUserId, sourceUserName, None, None, False)
 		printLog("Control", sourceUserName + " disabled DMs with bridge client.")
-	if sourceText.startswith("/bridgecfg "):
+	if sourceText.startswith("/bridgecfg"):
 		printLog("Control", sourceUserName + " attempted usage of bridge configuration command.")
 		# /start command issued, allowing the bridge to convey DMs between bot and user
 		printLog("Control Debug", "got a control command, but this isnt implemented yet. sorry.")
@@ -457,7 +457,7 @@ def parseIrcMessages(line=None):
 			printLog("IRC", "Finished sending MOTD")
 			printLog("IRC", "Finished sending all initial connection information")
 			printLog("Telegram", "Attempting Telegram interface startup")
-			# there. just like home.
+			# there. just like home.		
 			# updater.start_polling(poll_interval=0.2, clean=True)
 			updater.start_polling(poll_interval=0.2, clean=True)
 			printLog("Telegram", "Telegram interface polling in separate thread. Link established!")
@@ -491,36 +491,36 @@ def parseIrcMessages(line=None):
 			printLog("IRC", "Client joining pseudochannel #" + str(convertedGroupId))
 
 			if convertedGroupId in telegramCache["groups"].keys():
-				allListedUsers = " " + ircuser["nick"]
+				allListedUsers = ":" + ircuser["nick"]
 				for cachedUserId, cachedUserIsAdmin in telegramCache["groups"][convertedGroupId].items():
 					if telegramCache["users"][cachedUserId][0] != "None":
 						if cachedUserIsAdmin:
 							allListedUsers = allListedUsers + " @" + prefixUsernames() + telegramCache["users"][cachedUserId][0]
 						else:
-							allListedUsers = allListedUsers + " " + prefixUsernames() + telegramCache["users"][cachedUserId][0]
+							allListedUsers = allListedUsers + " +" + prefixUsernames() + telegramCache["users"][cachedUserId][0]
 					else:
 						printLog("Cache WARNING", "Skipped @-less Telegram user " + str(cachedUserId) + " in cache")
 				sendToIrc(":telegram.irc.bridge 353 " + ircuser["nick"] + " @ " + line[1] + allListedUsers)
 			else:
-				sendToIrc(":telegram.irc.bridge 353 " + ircuser["nick"] + " @ " + channel + " " + ircuser["nick"])
+				sendToIrc(":telegram.irc.bridge 353 " + ircuser["nick"] + " @ " + channel + " :" + ircuser["nick"])
 				printLog("Cache WARNING", "Group cache for TG group " + str(convertedGroupId) + " nonexistent or empty, sending an empty channel JOIN-associated NAMES reply")
 			sendToIrc(":telegram.irc.bridge 366 " + ircuser["nick"] + " " + channel + " End of /NAMES list.")
 
 	elif line[0] == "NAMES":  # client MANUALLY requesting NAMES. NAMES are also sent automatically on successful JOIN to a channel, but not what we're doing here.
 		convertedGroupId = str(line[1].lstrip("#"))
 		if convertedGroupId in telegramCache["groups"].keys():
-			allListedUsers = " " + ircuser["nick"]
+			allListedUsers = ":" + ircuser["nick"]
 			for cachedUserId, cachedUserIsAdmin in telegramCache["groups"][convertedGroupId].items():
 				if telegramCache["users"][cachedUserId][0] != "None":
 					if cachedUserIsAdmin:
 						allListedUsers = allListedUsers + " @" + prefixUsernames() + telegramCache["users"][cachedUserId][0]
 					else:
-						allListedUsers = allListedUsers + " " + prefixUsernames() + telegramCache["users"][cachedUserId][0]
+						allListedUsers = allListedUsers + " +" + prefixUsernames() + telegramCache["users"][cachedUserId][0]
 				else:
 					printLog("Cache WARNING", "Skipped @-less Telegram user " + str(cachedUserId) + " in cache")
 			sendToIrc(":telegram.irc.bridge 353 " + ircuser["nick"] + " @ " + line[1] + allListedUsers)
 		else:
-			sendToIrc(":telegram.irc.bridge 353 " + ircuser["nick"] + " @ " + line[1] + " " + ircuser["nick"])
+			sendToIrc(":telegram.irc.bridge 353 " + ircuser["nick"] + " @ " + line[1] + " :" + ircuser["nick"])
 			printLog("Cache WARNING", "Group cache for TG group " + str(convertedGroupId) + " nonexistent or empty, sending an empty channel NAMES reply")
 		sendToIrc(":telegram.irc.bridge 366 " + ircuser["nick"] + " " + line[1] + " End of /NAMES list.")
 
