@@ -12,7 +12,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram import Bot, ParseMode
 
 # telegram-irc-bridge
-bridgeVersion = "0.1.3"  # don't comment this out
+bridgeVersion = "0.1.3.1"  # don't comment this out
 # by DJ_Arghlex (@dj_arghlex)
 # simulates a simple IRC server for connecting an IRC bot to a telegram bot account, with some limited functionality and controls therein.
 
@@ -132,16 +132,16 @@ def bridge_controlcommand(update, context):
 		printLog("Control", "User attempted to control the bridge outside a DM. Ignoring.")
 		return None
 
-	if sourceText.startswith("/start"):
+	if sourceText.startswith("/start "):
 		# /start command issued, allowing the bridge to convey DMs between bot and user
 		printLog("Control", sourceUserName + " enabled DMs with bridge client.")
 		saveUserToCache(sourceUserId, sourceUserName, None, None, True)
 		sendToTelegramChat(sourceChatId, "`[Bridge Notice]` PMs will now be conducted between you and the bot\n Use /stop, or block the bot to disable this", True)
-	if sourceText.startswith("/stop"):
+	if sourceText.startswith("/stop "):
 		# /start command issued, allowing the bridge to convey DMs between bot and user
 		saveUserToCache(sourceUserId, sourceUserName, None, None, False)
 		printLog("Control", sourceUserName + " disabled DMs with bridge client.")
-	if sourceText.startswith("/bridgecfg"):
+	if sourceText.startswith("/bridgecfg "):
 		printLog("Control", sourceUserName + " attempted usage of bridge configuration command.")
 		# /start command issued, allowing the bridge to convey DMs between bot and user
 		printLog("Control Debug", "got a control command, but this isnt implemented yet. sorry.")
@@ -654,7 +654,7 @@ def parseIrcMessages(line=None):
 				printLog(" * IRC " + messageType + " " + str(line[1]).lower(), "^" + ircuser["nick"] + "|M^ " + outboundMultiLineText)
 		else:  # regular single-line NOTICE
 			printLog(" * IRC " + messageType + " " + str(line[1]).lower(), "^" + ircuser["nick"] + "^ " + outboundText)
-		sendToTelegramChat(destinationChatId, "```[Notice] " + outboundText + "```", True)
+		sendToTelegramChat(destinationChatId, "`[Notice] " + outboundText + "`", True)
 
 	else:  # other garbage info coming in. print here.
 		printLog("IRC", "GARBAGE: |" + " ".join(line) + "|")
