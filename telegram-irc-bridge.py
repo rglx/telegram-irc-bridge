@@ -13,7 +13,7 @@ from telegram import Bot, ParseMode
 
 # telegram-irc-bridge
 bridgeVersion = "0.1.3.2"  # don't comment this out
-# by DJ_Arghlex (@dj_arghlex)
+# by rglx
 # simulates a simple IRC server for connecting an IRC bot to a telegram bot account, with some limited functionality and controls therein.
 
 
