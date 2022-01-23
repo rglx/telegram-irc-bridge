@@ -1,8 +1,8 @@
 # project-specific ignores
 configuration.json
 configuration_secrets.ini
-configuration_secrets.ini.example
 usercache.json
+*.sublime-workspace
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
